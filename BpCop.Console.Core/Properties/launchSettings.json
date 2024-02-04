@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BpCop.Console.Core": {
+      "commandName": "Project",
+      "commandLineArgs": "check-named-db -n ABN"
+    }
+  }
+}

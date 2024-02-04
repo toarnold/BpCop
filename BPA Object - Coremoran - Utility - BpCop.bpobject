@@ -1,0 +1,607 @@
+﻿<process name="Coremoran - Utility - BpCop" version="1.0" bpversion="7.3.0.9110" narrative="Wrapper for the BpCop.Rules.dll to do static code analysis" byrefcollection="true" processrunningmessage="" disableversioning="false" type="object" runmode="Background" preferredid="c1dec12a-4bc8-4fcc-9885-07f436fc95ee">
+  <appdef>
+    <element name="Application Root">
+      <id>5f74646f-67f7-40ca-8c9b-34efdcac26a5</id>
+      <type>Application</type>
+      <basetype>Application</basetype>
+      <datatype>unknown</datatype>
+      <diagnose>False</diagnose>
+    </element>
+  </appdef>
+  <view>
+    <camerax>0</camerax>
+    <cameray>-42</cameray>
+    <zoom version="2">1.25</zoom>
+  </view>
+  <preconditions />
+  <endpoint narrative="" />
+  <subsheet subsheetid="d79f1bcf-e993-4fe2-81c9-3c83bbc6e366" type="CleanUp" published="True">
+    <name>Clean Up</name>
+    <view>
+      <camerax>0</camerax>
+      <cameray>0</cameray>
+      <zoom version="2">1.25</zoom>
+    </view>
+  </subsheet>
+  <subsheet subsheetid="a43ffbca-76ee-42d0-922a-d99210f58c7b" type="Normal" published="False">
+    <name>Load From Nuget</name>
+    <view>
+      <camerax>0</camerax>
+      <cameray>-21</cameray>
+      <zoom version="2">1.25</zoom>
+    </view>
+  </subsheet>
+  <subsheet subsheetid="1d4a52c1-b802-423a-9170-6bc5c21711b2" type="Normal" published="False">
+    <name>Ensure Nuget</name>
+    <view>
+      <camerax>0</camerax>
+      <cameray>0</cameray>
+      <zoom version="2">1.25</zoom>
+    </view>
+  </subsheet>
+  <subsheet subsheetid="c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1" type="Normal" published="True">
+    <name>Get Rules</name>
+    <view>
+      <camerax>0</camerax>
+      <cameray>0</cameray>
+      <zoom version="2">1.25</zoom>
+    </view>
+  </subsheet>
+  <subsheet subsheetid="0687dc93-12a2-4d2a-8a11-b5b4f840ca60" type="Normal" published="True">
+    <name>Check Rules</name>
+    <view>
+      <camerax>0</camerax>
+      <cameray>-21</cameray>
+      <zoom version="2">1.25</zoom>
+    </view>
+  </subsheet>
+  <stage stageid="f42e3a5e-4523-4023-996d-87d80fdf2586" name="Start" type="Start">
+    <loginhibit />
+    <display x="15" y="-105" />
+    <onsuccess>4baa9657-6e5e-4f80-8083-4867e2cbc521</onsuccess>
+  </stage>
+  <stage stageid="d47cf4a9-0d4d-408f-8ebc-8faec79837a1" name="End" type="End">
+    <loginhibit />
+    <display x="15" y="75" />
+  </stage>
+  <stage stageid="6e6d84ca-32db-4cb9-a524-0a8ebcaae018" name="Stage1" type="ProcessInfo">
+    <display x="-195" y="-105" w="150" h="90" />
+    <references>
+      <reference>System.dll</reference>
+      <reference>System.Data.dll</reference>
+      <reference>System.Xml.dll</reference>
+      <reference>System.Drawing.dll</reference>
+      <reference>System.Core.dll</reference>
+      <reference>Microsoft.CSharp.dll</reference>
+      <reference>System.Data.DataSetExtensions.dll</reference>
+    </references>
+    <imports>
+      <import>System</import>
+      <import>Microsoft.CSharp</import>
+      <import>System.Linq</import>
+      <import>System.Collections.Generic</import>
+      <import>System.Reflection</import>
+      <import>System.IO</import>
+      <import>System.Data</import>
+      <import>System.Diagnostics</import>
+    </imports>
+    <language>csharp</language>
+    <globalcode><![CDATA[]]></globalcode>
+    <code><![CDATA[IDictionary<string, Assembly> assemblies = new Dictionary<string, Assembly>();
+
+dynamic GetInstance(string localKey, string fullQualifiedClassName,params object [] parameter)
+{
+	return Activator.CreateInstance(assemblies[localKey].GetType(fullQualifiedClassName), parameter);
+}
+
+T InvokeStaticMethod<T>(string localKey, string fullQualifiedClassName, string methodName, params object[] parameters)
+{
+	var type = assemblies[localKey].GetType(fullQualifiedClassName);
+	return (T)type.GetMethod(methodName, BindingFlags.Static|BindingFlags.Public).Invoke(null, parameters);
+}
+
+void LoadAssembly(string localKey, string paths, string assemblyName)
+{
+	if (!assemblies.ContainsKey(localKey))
+	{
+		var assemblyPath = paths.Split(',', ';')
+			.Select(p => Path.Combine(p,assemblyName))
+			.FirstOrDefault(w => File.Exists(w));
+		
+		if (assemblyPath == null)
+		{
+			throw new Exception("Can not load assembly " + assemblyName);
+		}
+		
+		assemblies.Add(localKey, Assembly.UnsafeLoadFrom(assemblyPath));	
+	}
+}
+
+Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+{
+	return assemblies.Values.FirstOrDefault(a => a.FullName == args.Name);
+}
+
+dynamic _engine;
+]]></code>
+  </stage>
+  <stage stageid="1a7b7fc7-059d-4193-a549-0b522cee32dc" name="Clean Up" type="SubSheetInfo">
+    <subsheetid>d79f1bcf-e993-4fe2-81c9-3c83bbc6e366</subsheetid>
+    <display x="-195" y="-105" w="150" h="90" />
+  </stage>
+  <stage stageid="e6706818-cf74-47ff-8229-45f9b2ff792d" name="Start" type="Start">
+    <subsheetid>d79f1bcf-e993-4fe2-81c9-3c83bbc6e366</subsheetid>
+    <loginhibit />
+    <display x="15" y="-105" />
+    <onsuccess>35a34726-c62b-435c-850a-7845fa5b1b69</onsuccess>
+  </stage>
+  <stage stageid="35a34726-c62b-435c-850a-7845fa5b1b69" name="End" type="End">
+    <subsheetid>d79f1bcf-e993-4fe2-81c9-3c83bbc6e366</subsheetid>
+    <loginhibit />
+    <display x="15" y="90" />
+  </stage>
+  <stage stageid="b52b0693-c441-456a-8a6b-3b68155d2c4b" name="Get Rules" type="SubSheetInfo">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <narrative>Enumerates all found rules from the configures rules folder</narrative>
+    <display x="-195" y="-105" w="150" h="90" />
+  </stage>
+  <stage stageid="4bf418ae-4480-4b6b-bbc4-dd0a89d24538" name="Start" type="Start">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <loginhibit />
+    <display x="15" y="-105" />
+    <onsuccess>0fc7af8c-3472-49b6-80d4-b1de16fc9a8b</onsuccess>
+  </stage>
+  <stage stageid="63b1a3ce-7a0b-4ebd-bdc8-453eb09a6509" name="End" type="End">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <loginhibit />
+    <display x="15" y="15" />
+    <outputs>
+      <output type="collection" name="Rules" narrative="The available rules" stage="Rules" />
+      <output type="number" name="Count" narrative="Count of the available rules" stage="Count" />
+    </outputs>
+  </stage>
+  <stage stageid="176de424-cedf-4423-9adc-48ce81fed67f" name="Load Assemblies" type="Code">
+    <loginhibit />
+    <display x="15" y="30" />
+    <inputs>
+      <input type="text" name="rootPath" expr="[BpCop Root Path]" />
+    </inputs>
+    <onsuccess>d47cf4a9-0d4d-408f-8ebc-8faec79837a1</onsuccess>
+    <code><![CDATA[LoadAssembly("bpcop", rootPath, "BpCop.Rules.dll");
+LoadAssembly("bpcopcommon", rootPath, "BpCop.Common.dll");
+
+_engine = GetInstance("bpcop","BpCop.Rules.Engine", new object [] {new string [] { Path.Combine(rootPath,"Rules") }});]]></code>
+  </stage>
+  <stage stageid="31f278dd-64a5-4f9f-b45f-3a9f7dc1770e" name="Config" type="Block">
+    <loginhibit />
+    <display x="-300" y="-45" w="210" h="90" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="8aff9af0-1ba8-4a8a-8901-a6b2a843a5e0" name="BpCop Root Path" type="Data">
+    <loginhibit />
+    <display x="-195" y="15" w="180" h="30" />
+    <datatype>text</datatype>
+    <initialvalue xml:space="preserve">H:\RCC_Runtime\BpCop\Rules\</initialvalue>
+    <exposure>Environment</exposure>
+    <alwaysinit />
+  </stage>
+  <stage stageid="0fc7af8c-3472-49b6-80d4-b1de16fc9a8b" name="Get rules form engine" type="Code">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <loginhibit />
+    <display x="15" y="-45" />
+    <outputs>
+      <output type="collection" name="rules" stage="Rules" />
+      <output type="number" name="count" stage="Count" />
+    </outputs>
+    <onsuccess>63b1a3ce-7a0b-4ebd-bdc8-453eb09a6509</onsuccess>
+    <code><![CDATA[var result = _engine.GetRules();
+rules = InvokeStaticMethod<DataTable>("json", "Coremoran.BluePrism.Json.BluePrismConverter", "ObjectToCollection" ,result);
+count = result.Count;]]></code>
+  </stage>
+  <stage stageid="b23e769c-2299-40f3-80b5-9085807eda25" name="Count" type="Data">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <display x="-195" y="15" w="120" h="30" />
+    <datatype>number</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="165765fd-c86f-41c8-9ab1-39172c0fd845" name="Rules" type="Collection">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <display x="-195" y="-15" w="120" h="30" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="fc629ad3-70d4-4cf9-9b08-95bb6093fa44" name="Check Rules" type="SubSheetInfo">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <narrative>Checks a given process xml with rules provided.</narrative>
+    <display x="-195" y="-105" w="150" h="90" />
+  </stage>
+  <stage stageid="f7753c91-789a-4d78-962a-928388f060ba" name="Start" type="Start">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="15" y="-105" />
+    <inputs>
+      <input type="text" name="ProcessXml" narrative="Xml to analyse" stage="ProcessXml" />
+      <input type="flag" name="Published" narrative="True if xml is a control room published process" stage="Published" />
+      <input type="text" name="Id" narrative="Optional: process guid if available" stage="Id" />
+      <input type="text" name="CustomParameter" narrative="Optional: Serialized json object to provide custom parameter for the ruleset" stage="CustomParameter" />
+      <input type="text" name="Whitelist" narrative="Optional Csv: Rules to execute, blank for all rules" stage="Whitelist" />
+      <input type="text" name="Blacklist" narrative="Optional Csv : Rules to exclude" stage="Blacklist" />
+      <input type="flag" name="RemoveJustified" narrative="Optional: True, remove justified findings" stage="RemoveJustified" />
+    </inputs>
+    <onsuccess>10a3bef8-f1ad-429f-817f-57268534915a</onsuccess>
+  </stage>
+  <stage stageid="1e8fd1a1-89d7-45d6-8f34-00948abe6d8b" name="End" type="End">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="15" y="60" />
+    <outputs>
+      <output type="collection" name="Findings" narrative="All findings in asset" stage="Findings" />
+      <output type="number" name="FindingsCount" narrative="Number of found findings" stage="FindingsCount" />
+      <output type="collection" name="Justifications" narrative="All justifications in asset" stage="Justifications" />
+      <output type="number" name="JustificationsCount" narrative="Number of found justifications" stage="JustificationsCount" />
+      <output type="collection" name="Rules" narrative="All applied rules" stage="Rules" />
+      <output type="number" name="RulesCount" narrative="Number of applied rules" stage="RulesCount" />
+    </outputs>
+  </stage>
+  <stage stageid="b0506950-623c-4175-a13e-7bd1d8f10faa" name="ProcessXml" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="-15" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="dc15822f-8b4c-4322-9fe2-da1f128aff3e" name="Published" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="15" w="120" h="30" />
+    <datatype>flag</datatype>
+    <initialvalue>False</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="1f147363-11bd-4076-8b1d-d77e7b3a73aa" name="Id" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="45" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="54c2d54b-1495-4a98-a789-528607922516" name="CustomParameter" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="75" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue xml:space="preserve">{}</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="d6ce5296-2e28-43b3-8b42-62a2959f00af" name="Execute rules" type="Code">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="15" y="0" />
+    <inputs>
+      <input type="text" name="xml" expr="[ProcessXml]" />
+      <input type="flag" name="isPublished" expr="[Published]" />
+      <input type="text" name="id" expr="[Id]" />
+      <input type="text" name="customParameter" expr="[CustomParameter]" />
+      <input type="text" name="whitelist" expr="[Whitelist]" />
+      <input type="text" name="blacklist" expr="[Blacklist]" />
+      <input type="flag" name="removeJustified" expr="[RemoveJustified]" />
+    </inputs>
+    <outputs>
+      <output type="collection" name="findings" stage="Findings" />
+      <output type="number" name="findingsCount" stage="FindingsCount" />
+      <output type="collection" name="justifications" stage="Justifications" />
+      <output type="number" name="justificationsCount" stage="JustificationsCount" />
+      <output type="collection" name="rules" stage="Rules" />
+      <output type="number" name="rulesCount" stage="RulesCount" />
+    </outputs>
+    <onsuccess>1e8fd1a1-89d7-45d6-8f34-00948abe6d8b</onsuccess>
+    <code><![CDATA[dynamic engineParameter = GetInstance("bpcopcommon","BpCop.Common.BpModel.ExternalProcessInformation");
+engineParameter.Published = isPublished;
+if (!string.IsNullOrEmpty(id))
+{
+	engineParameter.Id = Guid.Parse(id);
+}
+
+var objectresult = _engine.CheckRules(xml,
+							engineParameter,whitelist.Split(',').Where(s => !string.IsNullOrEmpty(s)),
+							blacklist.Split(',').Where(s => !string.IsNullOrEmpty(s)),
+							customParameter);
+
+if (removeJustified && objectresult.Findings.Count > 0)
+{
+	findings = InvokeStaticMethod<DataTable>("json", "Coremoran.BluePrism.Json.BluePrismConverter", "ObjectToCollection", ((IEnumerable<dynamic>)objectresult.Findings).Where(w => string.IsNullOrEmpty(w.JustificationLevel)));
+}
+else
+{
+	findings = InvokeStaticMethod<DataTable>("json", "Coremoran.BluePrism.Json.BluePrismConverter", "ObjectToCollection", objectresult.Findings);
+}
+findingsCount = findings.Rows.Count;
+justifications = InvokeStaticMethod<DataTable>("json", "Coremoran.BluePrism.Json.BluePrismConverter", "ObjectToCollection", objectresult.Justifications);
+justificationsCount = justifications.Rows.Count;
+rules = InvokeStaticMethod<DataTable>("json", "Coremoran.BluePrism.Json.BluePrismConverter", "ObjectToCollection", objectresult.Rules);
+rulesCount = rules.Rows.Count;]]></code>
+  </stage>
+  <stage stageid="bd846d48-ea04-4d51-8eb5-f81082940de7" name="Blacklist" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="135" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="ca47eefc-5325-480a-abed-630e75bde9f7" name="Whitelist" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="105" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="f71fb52b-a7c4-4200-8834-43317bd59b47" name="out" type="Block">
+    <subsheetid>c3f8f30d-d664-4b66-9e4d-423fb5ff1ae1</subsheetid>
+    <loginhibit />
+    <display x="-270" y="-45" w="150" h="90" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="5f418c97-5e23-4bcf-9f2e-6a382a565f92" name="in" type="Block">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-270" y="-45" w="150" h="240" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="f83827e1-4e87-4e9d-a5a8-741df0a5ed12" name="out" type="Block">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-270" y="210" w="150" h="210" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="1915e80c-a169-47e6-9516-f6b20d3163c1" name="Findings" type="Collection">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="240" w="120" h="30" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="785b3f70-3e9a-4c49-bc2b-9b15d9fa6ebe" name="FindingsCount" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="270" w="120" h="30" />
+    <datatype>number</datatype>
+    <initialvalue>0</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="3fd80420-7913-4fa5-bb4a-3d3723f2b630" name="Justifications" type="Collection">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="300" w="120" h="30" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="e46bfa2e-9d46-41d4-9d16-98ef8dda11f0" name="JustificationsCount" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="330" w="120" h="30" />
+    <datatype>number</datatype>
+    <initialvalue>0</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="04e6cdf2-e49e-46bc-bcf5-6401dd673986" name="Rules" type="Collection">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="360" w="120" h="30" />
+    <datatype>collection</datatype>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="c11d1c61-8f66-4dd5-873b-20999cfb22b5" name="RulesCount" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit />
+    <display x="-195" y="390" w="120" h="30" />
+    <datatype>number</datatype>
+    <initialvalue>0</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="cfc4e8d3-9c88-4c3b-aac6-10750e5f8de3" name="RemoveJustified" type="Data">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="-195" y="165" w="120" h="30" />
+    <datatype>flag</datatype>
+    <initialvalue>True</initialvalue>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="10a3bef8-f1ad-429f-817f-57268534915a" name="Xml provided?" type="Decision">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <loginhibit onsuccess="true" />
+    <display x="15" y="-45" />
+    <decision expression="Trim([ProcessXml])&lt;&gt;&quot;&quot;" />
+    <ontrue>d6ce5296-2e28-43b3-8b42-62a2959f00af</ontrue>
+    <onfalse>0f09c754-3de8-4c53-a6fe-0ffa49a04cfb</onfalse>
+  </stage>
+  <stage stageid="0f09c754-3de8-4c53-a6fe-0ffa49a04cfb" name="SE" type="Exception">
+    <subsheetid>0687dc93-12a2-4d2a-8a11-b5b4f840ca60</subsheetid>
+    <display x="105" y="-45" />
+    <exception localized="yes" type="System Exception" detail="&quot;No process xml provided.&quot;" />
+  </stage>
+  <stage stageid="0ef5b237-0e1d-494b-9aaf-ee3825c7e119" name="Ensure Nuget" type="SubSheetInfo">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <display x="-195" y="-105" w="150" h="90" />
+  </stage>
+  <stage stageid="e9c0f3fe-f06b-4bc4-8010-adcb77ea2510" name="Start" type="Start">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="15" y="-105" />
+    <onsuccess>eecff0a6-4c18-4d72-9ed7-bd082bc73f75</onsuccess>
+  </stage>
+  <stage stageid="45627717-a982-45c5-96e0-109aca66533b" name="End" type="End">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="15" y="45" />
+  </stage>
+  <stage stageid="eecff0a6-4c18-4d72-9ed7-bd082bc73f75" name="Test &amp; Download NuGet" type="Code">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="15" y="-30" />
+    <inputs>
+      <input type="text" name="Url" expr="[NuGetLatest]" />
+      <input type="text" name="Path" expr="[BluePrismAddOnDirectory]&amp;&quot;\nuget.Exe&quot;" />
+    </inputs>
+    <onsuccess>45627717-a982-45c5-96e0-109aca66533b</onsuccess>
+    <code><![CDATA[if (!File.Exists(Path))
+{
+	using (var wc = new System.Net.WebClient())
+	{
+		wc.UseDefaultCredentials = true;	
+		wc.DownloadFile(Url, Path);
+	}
+}]]></code>
+  </stage>
+  <stage stageid="73faea61-0042-4868-a9ef-2e22ebfdeefa" name="BluePrismAddOnDirectory" type="Data">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="-195" y="-15" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <exposure>Environment</exposure>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="c2a8d0d8-a80e-4d40-9a51-46f6eb040366" name="Environment" type="Block">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="-270" y="-45" w="150" h="90" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="50c8891b-1737-4c3a-833b-9cdb9d7ab684" name="NuGetLatest" type="Data">
+    <subsheetid>1d4a52c1-b802-423a-9170-6bc5c21711b2</subsheetid>
+    <loginhibit />
+    <display x="-195" y="15" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <exposure>Environment</exposure>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="b10224bc-ba06-4737-bcc7-2e32576b35c9" name="Load From Nuget" type="SubSheetInfo">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <display x="-195" y="-105" w="150" h="90" />
+  </stage>
+  <stage stageid="0f17961f-6671-4609-8802-a6fb3de673a4" name="Start" type="Start">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="15" y="-105" />
+    <inputs>
+      <input type="text" name="LocalKey" stage="LocalKey" />
+      <input type="text" name="PackageInfoCsv" stage="PackageInfoCsv" />
+    </inputs>
+    <onsuccess>8b8e9c00-0d26-4a96-9f1b-3f9380c4d38e</onsuccess>
+  </stage>
+  <stage stageid="b145669f-3900-4239-82ff-54927f81afab" name="End" type="End">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="15" y="15" />
+  </stage>
+  <stage stageid="88dddeac-7855-4caa-a1a3-83b2c4f834f9" name="LocalKey" type="Data">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <display x="-195" y="-15" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="d01ba182-e8f6-402b-b21d-e9d5959577e0" name="in" type="Block">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="-270" y="-45" w="150" h="90" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="8b8e9c00-0d26-4a96-9f1b-3f9380c4d38e" name="LoadFromNuget" type="Code">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="15" y="-45" />
+    <inputs>
+      <input type="text" name="localCache" expr="[BluePrismAddOnDirectory]" />
+      <input type="text" name="localKey" expr="[LocalKey]" />
+      <input type="text" name="packageInfo" expr="[PackageInfoCsv]" />
+    </inputs>
+    <onsuccess>b145669f-3900-4239-82ff-54927f81afab</onsuccess>
+    <code><![CDATA[if (!assemblies.ContainsKey(localKey))
+{
+	var parts = packageInfo.Split(',');
+	var assemblyPath =  Path.Combine(localCache, parts[2]);
+	if (!File.Exists(assemblyPath))
+	{
+		var process = Process.Start(new ProcessStartInfo("nuget.exe") {
+			WorkingDirectory = localCache,
+			WindowStyle = ProcessWindowStyle.Hidden,
+			Arguments = string.Format("install {0} -Version {1} -FallbackSource \"{2}\"", parts[0], parts[1], Path.Combine(localCache, "Packages"))
+		});
+		process.WaitForExit();
+		if (process.ExitCode!=0)
+		{
+			throw new Exception("Can not load Nuget package " + parts[0]);
+		}
+	}
+
+	assemblies.Add(localKey, Assembly.UnsafeLoadFrom(assemblyPath));
+}]]></code>
+  </stage>
+  <stage stageid="e92de189-c321-490c-b746-010cab605b40" name="BluePrismAddOnDirectory" type="Data">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="-195" y="90" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <exposure>Environment</exposure>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="86a4dd90-359d-440f-b38f-c3f7bc165e30" name="Environment" type="Block">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <loginhibit />
+    <display x="-270" y="60" w="150" h="60" />
+    <font family="Segoe UI" size="10" style="Regular" color="7FB2E5" />
+  </stage>
+  <stage stageid="cf3d14d5-5653-4595-b563-043f4bdc0d7f" name="PackageInfoCsv" type="Data">
+    <subsheetid>a43ffbca-76ee-42d0-922a-d99210f58c7b</subsheetid>
+    <display x="-195" y="15" w="120" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="cc9d5100-d751-433d-a9be-690af533a807" name="Load Json" type="SubSheet">
+    <loginhibit />
+    <display x="15" y="-15" />
+    <inputs>
+      <input type="text" name="LocalKey" friendlyname="LocalKey" expr="&quot;json&quot;" />
+      <input type="text" name="PackageInfoCsv" friendlyname="PackageInfoCsv" expr="[Nuget: CoremoranBluePrismJson]" />
+    </inputs>
+    <onsuccess>176de424-cedf-4423-9adc-48ce81fed67f</onsuccess>
+    <processid>a43ffbca-76ee-42d0-922a-d99210f58c7b</processid>
+  </stage>
+  <stage stageid="51ebe008-f93a-4e1d-ba40-2ea120d36018" name="Nuget: CoremoranBluePrismJson" type="Data">
+    <loginhibit />
+    <display x="-195" y="-15" w="180" h="30" />
+    <datatype>text</datatype>
+    <initialvalue />
+    <exposure>Environment</exposure>
+    <private />
+    <alwaysinit />
+  </stage>
+  <stage stageid="4baa9657-6e5e-4f80-8083-4867e2cbc521" name="Ensure Nuget" type="SubSheet">
+    <loginhibit />
+    <display x="15" y="-60" />
+    <onsuccess>cc9d5100-d751-433d-a9be-690af533a807</onsuccess>
+    <processid>1d4a52c1-b802-423a-9170-6bc5c21711b2</processid>
+  </stage>
+</process>
